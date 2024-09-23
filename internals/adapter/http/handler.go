@@ -23,25 +23,21 @@ func NewProductHandlers(productService port.ProductService) *ProductHandlers {
 func (h *ProductHandlers) CreateProduct(c *fiber.Ctx) error {
 	var product domain.Product
 
-	// Parse the request body into the 'product' struct
 	if err := c.BodyParser(&product); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
 	}
 
-	// Call the product service to create the product
 	err := h.productService.CreateProduct(&product)
 	if err != nil {
-		// Handle the error appropriately (e.g., return an error response)
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to create product")
 	}
 
-	// Return a success response (you might want to include the created product details)
 	return c.Status(fiber.StatusCreated).JSON(product)
 }
 
 // GetProduct handles retrieving a product by its ID
 func (h *ProductHandlers) GetProduct(c *fiber.Ctx) error {
-	productID := c.Params("id") // Assuming you're using 'id' as the path parameter
+	productID := c.Params("id")
 
 	product, err := h.productService.GetProductByID(productID)
 	if err != nil {
@@ -54,13 +50,15 @@ func (h *ProductHandlers) GetProduct(c *fiber.Ctx) error {
 
 	return c.JSON(product)
 }
-func (h *ProductHandlers) GetAllProducts() ([]*domain.Product, error) {
+
+// GetAllProducts handles retrieving all products
+func (h *ProductHandlers) GetAllProducts(c *fiber.Ctx) error {
 	products, err := h.productService.GetAllProducts()
 	if err != nil {
-		return nil, err
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to get all products")
 	}
 
-	return products, nil
+	return c.JSON(products)
 }
 
 // UpdateProduct handles updating an existing product
@@ -72,7 +70,6 @@ func (h *ProductHandlers) UpdateProduct(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
 	}
 
-	// Ensure the product ID in the URL matches the one in the request body
 	if product.ProductID != productID {
 		return fiber.NewError(fiber.StatusBadRequest, "Product ID mismatch")
 	}

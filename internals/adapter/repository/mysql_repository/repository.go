@@ -5,7 +5,7 @@ import (
 	"goproduct/internals/core/product/domain"
 	"goproduct/internals/core/product/port"
 
-	_ "github.com/go-sql-driver/mysql" // Import the MySQL driver
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type ProductRepository struct {
@@ -14,7 +14,6 @@ type ProductRepository struct {
 
 var _ port.ProductRepository = (*ProductRepository)(nil)
 
-// NewProductRepository establishes a connection to the MySQL database
 func NewProductRepository(dsn string) (*ProductRepository, error) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {

@@ -30,12 +30,12 @@ func NewProductRepository(dsn string) (*ProductRepository, error) {
 }
 
 func (r *ProductRepository) SaveProduct(product *domain.Product) error {
-	query := "INSERT INTO Product (product_id, product_name, price, stock) VALUES (?, ?, ?, ?)"
-	_, err := r.db.Exec(query, product.ProductID, product.ProductName, product.Price, product.Stock)
+	query := "INSERT INTO Product (product_name, price, stock) VALUES (?, ?, ?)"
+	_, err := r.db.Exec(query, product.ProductName, product.Price, product.Stock)
 	return err
 }
 
-func (r *ProductRepository) FindProductByID(productID string) (*domain.Product, error) {
+func (r *ProductRepository) FindProductByID(productID int) (*domain.Product, error) {
 	query := "SELECT product_id, product_name, price, stock FROM Product WHERE product_id = ?"
 	var product domain.Product
 	err := r.db.QueryRow(query, productID).Scan(&product.ProductID, &product.ProductName, &product.Price, &product.Stock)
@@ -73,7 +73,7 @@ func (r *ProductRepository) UpdateProduct(product *domain.Product) error {
 	return err
 }
 
-func (r *ProductRepository) DeleteProduct(productID string) error {
+func (r *ProductRepository) DeleteProduct(productID int) error {
 	query := "DELETE FROM Product WHERE product_id = ?"
 	_, err := r.db.Exec(query, productID)
 	return err

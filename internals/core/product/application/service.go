@@ -26,16 +26,15 @@ func NewProductService(repository port.ProductRepository) *ProductService {
 // CreateProduct creates a new product
 func (s *ProductService) CreateProduct(product *domain.Product) error {
 	// You might add validation here (e.g., check for required fields, uniqueness, etc.)
-	if product.ProductID == "" || product.ProductName == "" {
-		return errors.New("product ID and name are required")
+	if product.ProductName == "" {
+		return errors.New("product name are required")
 	}
-
 	return s.productRepository.SaveProduct(product)
 }
 
 // GetProductByID retrieves a product by its ID
-func (s *ProductService) GetProductByID(productID string) (*domain.Product, error) {
-	if productID == "" {
+func (s *ProductService) GetProductByID(productID int) (*domain.Product, error) {
+	if productID == 0 {
 		return nil, errors.New("product ID is required")
 	}
 
@@ -48,7 +47,7 @@ func (s *ProductService) GetAllProducts() ([]*domain.Product, error) {
 // UpdateProduct updates an existing product
 func (s *ProductService) UpdateProduct(product *domain.Product) error {
 	// You might add validation here and ensure the product exists before updating
-	if product.ProductID == "" {
+	if product.ProductID == nil {
 		return errors.New("product ID is required for update")
 	}
 
@@ -56,8 +55,8 @@ func (s *ProductService) UpdateProduct(product *domain.Product) error {
 }
 
 // DeleteProduct deletes a product by its ID
-func (s *ProductService) DeleteProduct(productID string) error {
-	if productID == "" {
+func (s *ProductService) DeleteProduct(productID int) error {
+	if productID == 0 {
 		return errors.New("product ID is required for deletion")
 	}
 

@@ -3,6 +3,9 @@ package http
 import (
 	"goproduct/internals/core/product/domain"
 	"goproduct/internals/core/product/port"
+	"strconv"
+
+	"net/http"
 
 	fiber "github.com/gofiber/fiber/v2"
 )
@@ -24,72 +27,148 @@ func (h *ProductHandlers) CreateProduct(c *fiber.Ctx) error {
 	var product domain.Product
 
 	if err := c.BodyParser(&product); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"message": "Invalid request body",
+		})
 	}
 
 	err := h.productService.CreateProduct(&product)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Failed to create product")
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Failed to create product: " + err.Error(),
+		})
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(product)
+	type ProductResponse struct {
+		ProductName string  `json:"product_name"`
+		Price       float64 `json:"price"`
+		Stock       int     `json:"stock"`
+	}
+
+	response := ProductResponse{
+		ProductName: product.ProductName,
+		Price:       product.Price,
+		Stock:       product.Stock,
+	}
+	return c.Status(http.StatusCreated).JSON(fiber.Map{
+		"status_code": http.StatusCreated,
+		"message":     "Product created successfully",
+		"data":        response,
+	})
 }
 
 // GetProduct handles retrieving a product by its ID
 func (h *ProductHandlers) GetProduct(c *fiber.Ctx) error {
-	productID := c.Params("id")
+	productIDStr := c.Params("id")
+
+	// Convert productID from string to int
+	productID, err := strconv.Atoi(productIDStr)
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"message": "Invalid product ID",
+		})
+	}
 
 	product, err := h.productService.GetProductByID(productID)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Failed to get product")
+		if err.Error() == "product not found" {
+			return c.Status(http.StatusNotFound).JSON(fiber.Map{"message": "Product not found"})
+		}
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"message": "Failed to get product"})
 	}
 
-	if product == nil {
-		return fiber.NewError(fiber.StatusNotFound, "Product not found")
-	}
-
-	return c.JSON(product)
+	return c.Status(http.StatusOK).JSON(fiber.Map{
+		"status_code": http.StatusOK,
+		"message":     "Get data success!",
+		"data":        product,
+	})
 }
 
 // GetAllProducts handles retrieving all products
 func (h *ProductHandlers) GetAllProducts(c *fiber.Ctx) error {
 	products, err := h.productService.GetAllProducts()
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Failed to get all products")
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Failed to get all products",
+		})
 	}
 
-	return c.JSON(products)
+	return c.Status(http.StatusOK).JSON(fiber.Map{
+		"status_code": http.StatusOK,
+		"message":     "Get all data success!",
+		"data":        products,
+		"total":       len(products),
+	})
 }
 
 // UpdateProduct handles updating an existing product
 func (h *ProductHandlers) UpdateProduct(c *fiber.Ctx) error {
-	productID := c.Params("id")
+	productIDStr := c.Params("id")
 
-	var product domain.Product
-	if err := c.BodyParser(&product); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
-	}
-
-	if product.ProductID != productID {
-		return fiber.NewError(fiber.StatusBadRequest, "Product ID mismatch")
-	}
-
-	err := h.productService.UpdateProduct(&product)
+	// Convert productID from string to int
+	productID, err := strconv.Atoi(productIDStr)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Failed to update product")
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"message": "Invalid product ID",
+		})
 	}
 
-	return c.JSON(product)
+	product, err := h.productService.GetProductByID(productID)
+	if err != nil {
+		if err.Error() == "product not found" { // Or use a custom error type
+			return c.Status(http.StatusNotFound).JSON(fiber.Map{"message": "Product not found"})
+		}
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"message": "Failed to get product"})
+	}
+	if err := c.BodyParser(&product); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"message": "Invalid request body",
+		})
+	}
+
+	// Set the ProductID from the URL parameter
+	product.ProductID = &productID
+
+	err = h.productService.UpdateProduct(product)
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Failed to update product: " + err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status_code": http.StatusOK,
+		"message":     "Product updated successfully",
+		"data":        product,
+	})
 }
 
 // DeleteProduct handles deleting a product by its ID
 func (h *ProductHandlers) DeleteProduct(c *fiber.Ctx) error {
-	productID := c.Params("id")
+	productIDStr := c.Params("id")
 
-	err := h.productService.DeleteProduct(productID)
+	// Convert productID from string to int
+	productID, err := strconv.Atoi(productIDStr)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Failed to delete product")
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"message": "Invalid product ID",
+		})
 	}
 
-	return c.SendStatus(fiber.StatusNoContent)
+	err = h.productService.DeleteProduct(productID)
+	if err != nil {
+		if err.Error() == "product not found" {
+			return c.Status(http.StatusNotFound).JSON(fiber.Map{
+				"message": "Product not found",
+			})
+		}
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Failed to delete product: " + err.Error(),
+		})
+	}
+
+	return c.Status(http.StatusOK).JSON(fiber.Map{
+		"status_code": http.StatusOK,
+		"message":     "Delete product success!",
+	})
 }

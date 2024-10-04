@@ -14,12 +14,20 @@ type Config struct {
 		Port int
 	}
 	Database struct {
-		User     string
-		Password string
-		Host     string
-		Port     int
-		Name     string
-		DSN      string
+		Type  string
+		MySQL struct {
+			User     string
+			Password string
+			Host     string
+			Port     int
+			Name     string
+			DSN      string
+		}
+		MongoDB struct {
+			URI        string
+			Database   string
+			Collection string
+		}
 	}
 }
 
@@ -40,29 +48,67 @@ func LoadConfigFromEnv() (config Config, err error) {
 		return config, fmt.Errorf("invalid SERVER_PORT value: %v", err)
 	}
 
-	// Get database details from environment variables
-	config.Database.User = os.Getenv("DB_USER")
-	config.Database.Password = os.Getenv("DB_PASSWORD")
-	config.Database.Host = os.Getenv("DB_HOST")
-	config.Database.Name = os.Getenv("DB_NAME")
+	// Get database type
+	config.Database.Type = os.Getenv("DB_TYPE")
+	if config.Database.Type == "" {
+		return config, fmt.Errorf("DB_TYPE environment variable is not set")
+	}
 
-	dbPortStr := os.Getenv("DB_PORT")
+	switch config.Database.Type {
+	case "mysql":
+		err = loadMySQLConfig(&config)
+	case "mongodb":
+		err = loadMongoDBConfig(&config)
+	default:
+		return config, fmt.Errorf("unsupported DB_TYPE: %s", config.Database.Type)
+	}
+
+	return config, err
+}
+
+func loadMySQLConfig(config *Config) error {
+	config.Database.MySQL.User = os.Getenv("MYSQL_USER")
+	config.Database.MySQL.Password = os.Getenv("MYSQL_PASSWORD")
+	config.Database.MySQL.Host = os.Getenv("MYSQL_HOST")
+	config.Database.MySQL.Name = os.Getenv("MYSQL_NAME")
+
+	dbPortStr := os.Getenv("MYSQL_PORT")
 	if dbPortStr == "" {
-		return config, fmt.Errorf("DB_PORT environment variable is not set")
+		return fmt.Errorf("MYSQL_PORT environment variable is not set")
 	}
-	config.Database.Port, err = strconv.Atoi(dbPortStr)
+	dbPort, err := strconv.Atoi(dbPortStr)
 	if err != nil {
-		return config, fmt.Errorf("invalid DB_PORT value: %v", err)
+		return fmt.Errorf("invalid MYSQL_PORT value: %v", err)
 	}
+	config.Database.MySQL.Port = dbPort
 
 	// Construct the DSN
-	config.Database.DSN = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
-		config.Database.User,
-		config.Database.Password,
-		config.Database.Host,
-		config.Database.Port,
-		config.Database.Name,
+	config.Database.MySQL.DSN = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
+		config.Database.MySQL.User,
+		config.Database.MySQL.Password,
+		config.Database.MySQL.Host,
+		config.Database.MySQL.Port,
+		config.Database.MySQL.Name,
 	)
 
-	return config, nil
+	return nil
+}
+
+func loadMongoDBConfig(config *Config) error {
+	config.Database.MongoDB.URI = os.Getenv("MONGODB_URI")
+	if config.Database.MongoDB.URI == "" {
+		return fmt.Errorf("MONGODB_URI environment variable is not set")
+	}
+
+	config.Database.MongoDB.Database = os.Getenv("MONGODB_DATABASE")
+	if config.Database.MongoDB.Database == "" {
+		return fmt.Errorf("MONGODB_DATABASE environment variable is not set")
+	}
+
+	config.Database.MongoDB.Collection = os.Getenv("MONGODB_COLLECTION")
+	if config.Database.MongoDB.Collection == "" {
+		return fmt.Errorf("MONGODB_COLLECTION environment variable is not set")
+	}
+
+	return nil
 }

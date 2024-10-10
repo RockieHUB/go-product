@@ -29,7 +29,7 @@ func (m *MockProductRepository) SaveProduct(product *domain.Product) error {
 }
 
 // FindProductByID mocks the FindProductByID method
-func (m *MockProductRepository) FindProductByID(productID int) (*domain.Product, error) {
+func (m *MockProductRepository) FindProductByID(productID interface{}) (*domain.Product, error) {
 	args := m.Called(productID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -50,7 +50,7 @@ func (m *MockProductRepository) UpdateProduct(product *domain.Product) error {
 }
 
 // DeleteProduct mocks the DeleteProduct method
-func (m *MockProductRepository) DeleteProduct(productID int) error {
+func (m *MockProductRepository) DeleteProduct(productID interface{}) error {
 	args := m.Called(productID)
 	return args.Error(0)
 }
@@ -75,8 +75,8 @@ func TestAPI(t *testing.T) {
 		t.Run("returns a list of products when products exist", func(t *testing.T) {
 			// Mock the GetAllProducts method to return some test products
 			mockProducts := []*domain.Product{
-				{ProductID: new(int), ProductName: "Test Product 1", Price: 10.0, Stock: 5},
-				{ProductID: new(int), ProductName: "Test Product 2", Price: 20.0, Stock: 10},
+				{ID: new(int), ProductName: "Test Product 1", Price: 10.0, Stock: 5},
+				{ID: new(int), ProductName: "Test Product 2", Price: 20.0, Stock: 10},
 			}
 			mockRepo.On("GetAllProducts").Return(mockProducts, nil)
 
@@ -181,15 +181,15 @@ func TestAPI(t *testing.T) {
 	t.Run("PUT /products/:id", func(t *testing.T) {
 		t.Run("updates an existing product", func(t *testing.T) {
 			existingProduct := &domain.Product{
-				ProductID:   new(int), // Assign a dummy ID
+				ID:          new(int), // Assign a dummy ID
 				ProductName: "Existing Product",
 				Price:       10.0,
 				Stock:       5,
 			}
-			*existingProduct.ProductID = 1 // Set the ID to 1 for testing
+			existingProduct.ID = 1 // Set the ID to 1 for testing
 
 			updatedProduct := domain.Product{
-				ProductID:   existingProduct.ProductID,
+				ID:          existingProduct.ID,
 				ProductName: "Updated Product",
 				Price:       12.0,
 				Stock:       8,
@@ -230,12 +230,12 @@ func TestAPI(t *testing.T) {
 	t.Run("GET /products/:id", func(t *testing.T) {
 		t.Run("returns a product by ID", func(t *testing.T) {
 			mockProduct := &domain.Product{
-				ProductID:   new(int),
+				ID:          new(int),
 				ProductName: "Test Product",
 				Price:       10.0,
 				Stock:       5,
 			}
-			*mockProduct.ProductID = 1
+			mockProduct.ID = 1
 			mockRepo.On("FindProductByID", 1).Return(mockProduct, nil)
 
 			req := httptest.NewRequest(netHTTP.MethodGet, "/products/1", nil)
@@ -254,7 +254,13 @@ func TestAPI(t *testing.T) {
 			assert.NoError(t, err)
 
 			assert.NotNil(t, responseBody.Data)
-			assert.Equal(t, *mockProduct.ProductID, *responseBody.Data.ProductID)
+			mockID, ok := mockProduct.ID.(int)
+			assert.True(t, ok, "mockProduct.ID is not of type int")
+
+			responseID, ok := responseBody.Data.ID.(float64)
+			assert.True(t, ok, "responseBody.Data.ID is not of type float64")
+
+			assert.Equal(t, float64(mockID), responseID)
 			// ... add more assertions to check other fields if needed ...
 
 			mockRepo.AssertExpectations(t)

@@ -7,6 +7,7 @@ import (
 	"goproduct/internals/core/product/port"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -44,10 +45,16 @@ func (r *ProductRepository) SaveProduct(product *domain.Product) error {
 	return err
 }
 
-func (r *ProductRepository) FindProductByID(productID int) (*domain.Product, error) {
+func (r *ProductRepository) FindProductByID(id interface{}) (*domain.Product, error) {
 	coll := r.client.Database(r.database).Collection(r.collection)
 	var product domain.Product
-	err := coll.FindOne(context.Background(), bson.M{"product_id": productID}).Decode(&product)
+
+	objectID, ok := id.(primitive.ObjectID)
+	if !ok {
+		return nil, errors.New("invalid ID type for MongoDB")
+	}
+
+	err := coll.FindOne(context.Background(), bson.M{"_id": objectID}).Decode(&product)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil // Not found
@@ -85,7 +92,7 @@ func (r *ProductRepository) UpdateProduct(product *domain.Product) error {
 	coll := r.client.Database(r.database).Collection(r.collection)
 	result, err := coll.ReplaceOne(
 		context.Background(),
-		bson.M{"product_id": product.ProductID},
+		bson.M{"_id": product.ID},
 		product,
 	)
 	if err != nil {
@@ -97,9 +104,9 @@ func (r *ProductRepository) UpdateProduct(product *domain.Product) error {
 	return nil
 }
 
-func (r *ProductRepository) DeleteProduct(productID int) error {
+func (r *ProductRepository) DeleteProduct(productID interface{}) error {
 	coll := r.client.Database(r.database).Collection(r.collection)
-	result, err := coll.DeleteOne(context.Background(), bson.M{"product_id": productID})
+	result, err := coll.DeleteOne(context.Background(), bson.M{"_id": productID})
 	if err != nil {
 		return err
 	}

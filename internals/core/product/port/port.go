@@ -9,18 +9,18 @@ import (
 // ProductService defines the interface for interacting with Product entities
 type ProductService interface {
 	CreateProduct(product *domain.Product) error
-	GetProductByID(productID int) (*domain.Product, error)
+	GetProductByID(productID interface{}) (*domain.Product, error)
 	UpdateProduct(product *domain.Product) error
-	DeleteProduct(productID int) error
+	DeleteProduct(productID interface{}) error
 	GetAllProducts() ([]*domain.Product, error)
 }
 
 // ProductRepository defines the interface for data access related to Products
 type ProductRepository interface {
 	SaveProduct(product *domain.Product) error
-	FindProductByID(productID int) (*domain.Product, error)
+	FindProductByID(id interface{}) (*domain.Product, error)
 	UpdateProduct(product *domain.Product) error
-	DeleteProduct(productID int) error
+	DeleteProduct(id interface{}) error
 	GetAllProducts() ([]*domain.Product, error)
 }
 

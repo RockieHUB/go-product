@@ -35,10 +35,10 @@ func (r *ProductRepository) SaveProduct(product *domain.Product) error {
 	return err
 }
 
-func (r *ProductRepository) FindProductByID(productID int) (*domain.Product, error) {
+func (r *ProductRepository) FindProductByID(productID interface{}) (*domain.Product, error) {
 	query := "SELECT product_id, product_name, price, stock FROM Product WHERE product_id = ?"
 	var product domain.Product
-	err := r.db.QueryRow(query, productID).Scan(&product.ProductID, &product.ProductName, &product.Price, &product.Stock)
+	err := r.db.QueryRow(query, productID).Scan(&product.ID, &product.ProductName, &product.Price, &product.Stock)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // Not found
@@ -58,7 +58,7 @@ func (r *ProductRepository) GetAllProducts() ([]*domain.Product, error) {
 	var products []*domain.Product
 	for rows.Next() {
 		var product domain.Product
-		if err := rows.Scan(&product.ProductID, &product.ProductName, &product.Price, &product.Stock); err != nil {
+		if err := rows.Scan(&product.ID, &product.ProductName, &product.Price, &product.Stock); err != nil {
 			return nil, err
 		}
 		products = append(products, &product)
@@ -69,11 +69,11 @@ func (r *ProductRepository) GetAllProducts() ([]*domain.Product, error) {
 
 func (r *ProductRepository) UpdateProduct(product *domain.Product) error {
 	query := "UPDATE Product SET product_name = ?, price = ?, stock = ? WHERE product_id = ?"
-	_, err := r.db.Exec(query, product.ProductName, product.Price, product.Stock, product.ProductID)
+	_, err := r.db.Exec(query, product.ProductName, product.Price, product.Stock, product.ID)
 	return err
 }
 
-func (r *ProductRepository) DeleteProduct(productID int) error {
+func (r *ProductRepository) DeleteProduct(productID interface{}) error {
 	query := "DELETE FROM Product WHERE product_id = ?"
 	_, err := r.db.Exec(query, productID)
 	return err

@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	fiber "github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type ProductHandlers struct {
@@ -60,21 +61,26 @@ func (h *ProductHandlers) CreateProduct(c *fiber.Ctx) error {
 // GetProduct handles retrieving a product by its ID
 func (h *ProductHandlers) GetProduct(c *fiber.Ctx) error {
 	productIDStr := c.Params("id")
+	var productID interface{}
+	var err error
 
-	// Convert productID from string to int
-	productID, err := strconv.Atoi(productIDStr)
+	productID, err = primitive.ObjectIDFromHex(productIDStr)
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
-			"message": "Invalid product ID",
-		})
+		productID, err = strconv.Atoi(productIDStr)
+		if err != nil {
+			return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+				"message": "Invalid product ID",
+			})
+		}
 	}
 
 	product, err := h.productService.GetProductByID(productID)
 	if err != nil {
-		if err.Error() == "product not found" {
-			return c.Status(http.StatusNotFound).JSON(fiber.Map{"message": "Product not found"})
-		}
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"message": "Failed to get product"})
+	}
+
+	if product == nil {
+		return c.Status(http.StatusNotFound).JSON(fiber.Map{"message": "Product not found"})
 	}
 
 	return c.Status(http.StatusOK).JSON(fiber.Map{
@@ -104,13 +110,17 @@ func (h *ProductHandlers) GetAllProducts(c *fiber.Ctx) error {
 // UpdateProduct handles updating an existing product
 func (h *ProductHandlers) UpdateProduct(c *fiber.Ctx) error {
 	productIDStr := c.Params("id")
+	var productID interface{}
+	var err error
 
-	// Convert productID from string to int
-	productID, err := strconv.Atoi(productIDStr)
+	productID, err = primitive.ObjectIDFromHex(productIDStr)
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
-			"message": "Invalid product ID",
-		})
+		productID, err = strconv.Atoi(productIDStr)
+		if err != nil {
+			return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+				"message": "Invalid product ID",
+			})
+		}
 	}
 
 	product, err := h.productService.GetProductByID(productID)
@@ -127,7 +137,7 @@ func (h *ProductHandlers) UpdateProduct(c *fiber.Ctx) error {
 	}
 
 	// Set the ProductID from the URL parameter
-	product.ProductID = &productID
+	product.ID = &productID
 
 	err = h.productService.UpdateProduct(product)
 	if err != nil {
@@ -146,13 +156,17 @@ func (h *ProductHandlers) UpdateProduct(c *fiber.Ctx) error {
 // DeleteProduct handles deleting a product by its ID
 func (h *ProductHandlers) DeleteProduct(c *fiber.Ctx) error {
 	productIDStr := c.Params("id")
+	var productID interface{}
+	var err error
 
-	// Convert productID from string to int
-	productID, err := strconv.Atoi(productIDStr)
+	productID, err = primitive.ObjectIDFromHex(productIDStr)
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
-			"message": "Invalid product ID",
-		})
+		productID, err = strconv.Atoi(productIDStr)
+		if err != nil {
+			return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+				"message": "Invalid product ID",
+			})
+		}
 	}
 
 	err = h.productService.DeleteProduct(productID)

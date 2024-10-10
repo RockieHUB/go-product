@@ -33,8 +33,8 @@ func (s *ProductService) CreateProduct(product *domain.Product) error {
 }
 
 // GetProductByID retrieves a product by its ID
-func (s *ProductService) GetProductByID(productID int) (*domain.Product, error) {
-	if productID == 0 {
+func (s *ProductService) GetProductByID(productID interface{}) (*domain.Product, error) {
+	if productID == nil {
 		return nil, errors.New("product ID is required")
 	}
 
@@ -47,7 +47,7 @@ func (s *ProductService) GetAllProducts() ([]*domain.Product, error) {
 // UpdateProduct updates an existing product
 func (s *ProductService) UpdateProduct(product *domain.Product) error {
 	// You might add validation here and ensure the product exists before updating
-	if product.ProductID == nil {
+	if product.ID == nil {
 		return errors.New("product ID is required for update")
 	}
 
@@ -55,8 +55,8 @@ func (s *ProductService) UpdateProduct(product *domain.Product) error {
 }
 
 // DeleteProduct deletes a product by its ID
-func (s *ProductService) DeleteProduct(productID int) error {
-	if productID == 0 {
+func (s *ProductService) DeleteProduct(productID interface{}) error {
+	if productID == nil {
 		return errors.New("product ID is required for deletion")
 	}
 
